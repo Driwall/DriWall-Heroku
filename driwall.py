@@ -44,7 +44,7 @@ def recvall(sock, n):
         if not packet:
             return None
         data += packet
-   return data
+    return data
 
 @app.route('/')
 def hello():
