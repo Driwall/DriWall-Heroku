@@ -45,7 +45,7 @@ def recvall(sock, n):
             return None
         data += packet
     return data
-
+sockets_pool = {}
 @app.route('/')
 def hello():
     return "Hello World!\n It's Working!"
@@ -61,11 +61,20 @@ def inbox(ws):
         
 
         if message:
-            jsoncontent = json.loads(message)
-            s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-            s.connect((jsoncontent[addr][dst],jsoncontent[addr][port]))
-            send_msg(s,jsoncontent[data])
-            resp = recv_msg(s)
-            s.close()
-            obj = {'HandlerId':jsoncontent[HandlerId],'socketId':jsoncontent[socketId],'data':resp}
-            ws.send (json.dumps(obj))
+
+            msg = json.loads(message)
+            if(msg["cmd"] == "connect"):
+
+                sockets_pool["hl"+str(msg["HandlerId"])+"so"+str(msg["socketId"])] = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+                sockets_pool["hl"+str(msg["HandlerId"])+"so"+str(msg["socketId"])].connect((msg["addr"]["dst"],msg["addr"]["port"]))
+                data = sockets_pool["hl"+str(msg["HandlerId"])+"so"+str(msg["socketId"])].getsockname()
+                obj = {'cmd':'connect','HandlerId':msg["HandlerId"],'socketId':msg["socketId"],'bnd':{'addr':data[0],'port':data[1]}}
+                ws.send (json.dumps(obj))
+                del data
+            else:    
+
+                send_msg(sockets_pool["hl"+str(msg["HandlerId"])+"so"+str(msg["socketId"])],jsoncontent[data])
+                resp = recv_msg(sockets_pool["hl"+str(msg["HandlerId"])+"so"+str(msg["socketId"])])
+                sockets_pool["hl"+str(msg["HandlerId"])+"so"+str(msg["socketId"])].close()
+                obj = {'cmd':'resp','HandlerId':msg["HandlerId"],'socketId':msg["socketId"],'data':resp}
+                ws.send (json.dumps(obj))
