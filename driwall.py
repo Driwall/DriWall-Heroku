@@ -14,6 +14,8 @@ import gevent
 import socket
 import json
 import struct
+import thread 
+from time import sleep
 from flask import Flask
 from flask_sockets import Sockets
 
@@ -45,14 +47,32 @@ def recvall(sock, n):
             return None
         data += packet
     return data
-    
+
+def heart_beats:
+    obj = json.dumps({'cmd':'ping'})
+    while true:
+        ws.send(obj)
+        sleep(45)
+
+def DriWall_req(message):
+    msg = json.loads(message)
+
+    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    s.connect((msg["dst"]["addr"],msg["dst"]["port"]))
+    send_msg(s,msg["data"])
+    resp = recv_msg(s)
+    obj = {'cmd':'resp','HandlerId':msg["HandlerId"],'socketId':msg["socketId"],'data':resp}
+    ws.send (json.dumps(obj))
+    s.close()
+
 @app.route('/')
 def hello():
     return "Hello World!\n It's Working!"
 
 @sockets.route('/driwall')
 def inbox(ws):
-    """Receives incoming chat messages, inserts them into Redis."""
+    
+    thread.start_new_thread(heart_beats,())
     
     while ws.socket is not None:
         # Sleep to prevent *contstant* context-switches.
@@ -62,14 +82,6 @@ def inbox(ws):
 
         if message:
 
-            msg = json.loads(message)
-
-            s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-            s.connect((msg["addr"]["dst"],msg["addr"]["port"]))
-            send_msg(s,msg["data"])
-            resp = recv_msg(s)
-            obj = {'cmd':'resp','HandlerId':msg["HandlerId"],'socketId':msg["socketId"],'data':resp}
-            ws.send (json.dumps(obj))
-            s.close()
+            thread.start_new_thread(DriWall_req,(message,))
             
                 
